@@ -1,12 +1,9 @@
 #include "module_ping.h"
 #include "ping/ping_sock.h"
-#include "argtable3/argtable3.h"
 #include "lwip/inet.h"
 #include "lwip/netdb.h"
 #include "lwip/sockets.h"
 #include "esp_log.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 
 static char *TAG = "module_ping";
 
