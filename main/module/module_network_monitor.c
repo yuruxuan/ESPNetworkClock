@@ -1,4 +1,4 @@
-#include "app_network_monitor.h"
+#include "module_network_monitor.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/timers.h"
@@ -15,7 +15,7 @@ static EventGroupHandle_t s_event_group_handle = NULL;
 #define NETWORK_AVAILABLE_BIT       BIT0
 #define NETWORK_UNAVAILABLE_BIT     BIT1
 
-static char *TAG = "app_network_monitor";
+static char *TAG = "module_network_monitor";
 
 void ping_network_task(void *pvParam) {
     int cmd = 0;
@@ -44,19 +44,21 @@ static void ping_timeout(void *args) {
 static void ping_end(void *args) {
 }
 
-esp_err_t app_network_monitor_init() {
+esp_err_t module_network_monitor_init(uint32_t repeat_ms) {
     static module_ping_callback_t ping_callback;
     ping_callback.on_ping_success = ping_success;
     ping_callback.on_ping_timeout = ping_timeout;
     ping_callback.on_ping_end = ping_end;
     module_set_ping_callback(&ping_callback);
 
-    s_timer_handle = xTimerCreate("network_monitor_timer",
-                                  pdMS_TO_TICKS(1000 * 60),
-                                  pdTRUE,
-                                  NULL,
-                                  timer_callback);
-    xTimerStart(s_timer_handle, 0);
+    if (repeat_ms > 0) {
+        s_timer_handle = xTimerCreate("network_monitor_timer",
+                                      pdMS_TO_TICKS(repeat_ms),
+                                      pdTRUE,
+                                      NULL,
+                                      timer_callback);
+        xTimerStart(s_timer_handle, 0);
+    }
 
     s_queue_handle = xQueueCreate(2, sizeof(int));
     xTaskCreate(ping_network_task, "ping_network_task", 2048,
@@ -66,7 +68,7 @@ esp_err_t app_network_monitor_init() {
     return ESP_OK;
 }
 
-esp_err_t app_network_monitor_check_sync() {
+esp_err_t module_network_monitor_check_sync() {
     int cmd = 1;
     if (xQueueSend(s_queue_handle, &cmd, pdMS_TO_TICKS(10)) != pdPASS) {
         ESP_LOGW(TAG, "send cmd %d failed", cmd);
